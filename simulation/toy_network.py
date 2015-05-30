@@ -7,7 +7,7 @@ import math
 import sys
 import os
 from images2gif import writeGif
-import helper_functions
+import helper_functions_for_toy
 
 
 gifs_directory = "/Users/andesgomez/Documents/Stanford/Spring2015/Psych287/project/gifs/"
