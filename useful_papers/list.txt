@@ -1,0 +1,17 @@
+Lateral Spread of Orientation Selectivity in V1 is Controlled by Intracortical Cooperativity
+http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3100672/
+
+
+Spatial frequency and orientation tuning dynamics in area V1
+James A. Mazer*†‡, William E. Vinje‡§, Josh McDermott†, Peter H. Schiller†, and Jack L. Gallant
+http://web.mit.edu/jhm/www/Pubs/Mazer_etal_2002_reverse_correlation.pdf
+
+
+The Orientation Selectivity of Color-Responsive Neurons in Macaque V1
+Elizabeth N. Johnson1, Michael J. Hawken2, and Robert Shapley2
+http://www.jneurosci.org/content/28/32/8096.full
+
+
+Orientation bandwidths are invariant across spatiotemporal frequency after isotropic components are removed
+John Cass; Sjoerd Stuit; Peter Bex; David Alais
+http://jov.arvojournals.org/article.aspx?articleid=2122293

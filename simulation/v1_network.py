@@ -19,7 +19,7 @@ gifst_of_v1_encoded_pictures = "/Users/andesgomez/Documents/Stanford/Spring2015/
 image_directory = "/Users/andesgomez/Documents/Stanford/Spring2015/Psych287/project/source_pictures/"
 
 
-name_of_gif = "gaussiann_3_6freq1phase_j_" #
+name_of_gif = "gaussiann_4_4freq1phase_ij_" #
 
 
 rows = 30
@@ -65,7 +65,7 @@ name_of_gif += parameter_description
 # v1_input_values is a datastructure that keeps track of the inputs from other units or source image
 
 # First define the range of frequencies you can choose from as well as the phases
-posible_frquencies = [0.01, 0.05, 0.1, 0.13, 0.16, 0.2]
+posible_frquencies = [0.05, 0.1, 0.2, 0.4]
 possible_phases = [0.]
 
 
@@ -76,7 +76,7 @@ for i in range(rows):
 		if (i % 2 == 0 or j < columns - 1):
 			this_frequency = posible_frquencies[random.randint(0,len(posible_frquencies) - 1)]
 			this_phase = possible_phases[random.randint(0,len(possible_phases) - 1)]
-			v1_values[(i, j)] = [default_potential + random.random()/4., 0, (j) % 8, this_frequency, this_phase]
+			v1_values[(i, j)] = [default_potential + random.random()/4., 0, (i + j) % 8, this_frequency, this_phase]
 			v1_input_values[(i, j)] = input_values
 
 available_coordinates = set(v1_values.keys())
