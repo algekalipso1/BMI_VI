@@ -10,12 +10,14 @@ import os
 from images2gif import writeGif
 
 
-# Generic math
+# Math functions
+#################################################################################################################################
+# Simple Gaussian function that is simply distance-from-origin-dependent
 e = math.exp(1)
 def gaussianFunction(amp, sd, d):
 	return amp*e**(-d**2 / (2*sd**2))
 
-
+# Euclidean distance in hexagonal array in 2D.
 def computeDistance(i, j, ii, jj, diameter):
 	dx = (i - ii)*diameter
 	if i % 2 != ii % 2:
@@ -28,6 +30,8 @@ def computeDistance(i, j, ii, jj, diameter):
 	return distance
 
 
+# Network visualization functions.
+#################################################################################################################################
 # Visualize v1 
 def visualizeNetwork(v1_values, rows, columns, diameter):
 	width = int(columns*diameter)
@@ -87,7 +91,8 @@ def updateVisualizationValues(v1_values):
 
 
 
-
+# This should only be ran more than once if there are multiple input sources.
+#################################################################################################################################
 # This takes an image as input and return the inptut to the cortical
 # columns after Gabor filter stuff.
 # inputs_from_image has the same format as v1_values: {(a, b):[x, y, z, ...]}
@@ -115,17 +120,42 @@ def getInputsFromImage(input_image, input_pixels, v1_values, all_Gabors, rows, c
 
 
 
+
+# This section uses image, and network values to determine the new delta input values (right before updating the network inputs themselves)
+#################################################################################################################################
 # Neural Network operations
-def computeDeltaInputs(inputs_from_image):
+def computeDeltaInputs(inputs_from_image, v1_values):
 	return inputs_from_image
 
-# Using the lambda rule to 
+
+def deltaInputsLocalSimilarity(inputs_from_image, v1_values, v1_ccs_connections, scaling):
+	all_hypercolumns = inputs_from_image.keys()
+	for i, j in all_hypercolumns:
+		center_orientation = v1_values[(i, j)][2]
+		these_connections = v1_ccs_connections[(i, j)]
+		added_input = 0.
+		for ii, jj in these_connections:
+			this_value = v1_values[(ii, jj)][0]
+			this_orientation = v1_values[(ii, jj)][2]
+			angle_difference = 2*math.pi*((center_orientation - this_orientation) % 8)/8.
+			cosine_similarity = abs(math.cos(angle_difference))
+			added_input += this_value*cosine_similarity*scaling
+		inputs_from_image[(i, j)] += added_input
+	return inputs_from_image
+
+
+# Update inputs
+#################################################################################################################################
+# Using the lambda rule to update network inputs based on the input deltas (computed from image and last network's activation)
 def updateNetInputs(v1_input_values, input_deltas, lmbd):
 	for i, j in v1_input_values.keys():
 		v1_input_values[(i, j)] = (1 - lmbd) * v1_input_values[(i, j)] + lmbd * input_deltas[(i, j)]
 	return v1_input_values
 
 
+
+# Network activation functions (global, gaussian or mexican hat)
+#################################################################################################################################
 # Normalization over the entire v1 layer (rather than localized divisive)
 def activateNetworkGlobal(v1_values, v1_input_values, alpha, beta, diameter):
 	total_number_of_units = len(v1_values.keys())
@@ -135,9 +165,6 @@ def activateNetworkGlobal(v1_values, v1_input_values, alpha, beta, diameter):
 	for i, j in v1_input_values.keys():
 		v1_values[(i, j)][0] = e**max(min(v1_input_values[(i, j)], 700), -700) / (alpha + beta*total_sum_of_exponents_of_inputs)
 	return v1_values
-
-
-
 
 
 
@@ -157,7 +184,7 @@ def activateNetworkWithMexicanHatKernel(network, net_inputs, alpha, beta, t, amp
 
 
 
-
+#################################################################################################################################
 # Creation of "Gabor receptive fields." these are patches like wavelets in real space
 # The filters encode frequency, phase and orientation. In the toy network the frequency and phase are held constant.
 # But here these will also be possible variables. 
@@ -178,7 +205,7 @@ def createGaborDataStructure(width, height, cycles_per_pixel, amp, sd, angle):
 	return filter_values
 
 
-
+# With phase, orientation and frequency requirements
 def createParametrizedGaborDataStructure(gabor_width, gabor_height, freq, gabor_amp, gabor_sd, angle, pha):
 	center_point = (gabor_width/2., gabor_height/2.)
 	direction_vector = (math.sin(angle/180.*math.pi), math.cos(angle/180.*math.pi))
@@ -194,6 +221,110 @@ def createParametrizedGaborDataStructure(gabor_width, gabor_height, freq, gabor_
 			value = value*corresponding_Gaussian_fraction
 			filter_values[(abs_x, abs_y)] = value
 	return filter_values
+
+
+# Creation of elipses to visualize edge detectors.
+#################################################################################################################################
+def createEllipse(width, height, freq, amp, sd, angle):
+	center_point = (width/2., height/2.)
+	direction_vector = (math.sin((angle)/180.*math.pi), math.cos((angle)/180.*math.pi))
+	ellipse_values = {}
+	for i in range(width):
+		for j in range(height):
+			abs_x = int(i - center_point[0])
+			abs_y = int(j - center_point[1])
+			component_in_direction = (abs_x*direction_vector[0] + abs_y*direction_vector[1]) * (0.1/freq) # dot product
+			distance_to_center = (abs_x**2 + abs_y**2)**.5
+			distance_component = distance_to_center*component_in_direction
+			corresponding_Gaussian_fraction = gaussianFunction(amp, sd, distance_component)
+			ellipse_values[(abs_x, abs_y)] = corresponding_Gaussian_fraction
+	return ellipse_values
+
+
+
+# These will be functions that will take as input v1_values and return a simulated experience based on that network's activation
+#################################################################################################################################
+
+
+# This just uses the visualization value and linearly adds the actual Gabor filters used in the generation of input values
+def visualizeExperienceNaiveAddition(v1_values, all_Gabors, rows, columns, diameter, scale):
+	xx = diameter*(rows + 1)
+	yy = diameter*(columns + 1)
+	experience_image = Image.new('RGB', (xx, yy))
+	experience_image_pixels = experience_image.load()
+	for tx in range(xx):
+		for ty in range(yy):
+			experience_image_pixels[tx, ty] = (127, 127, 127)
+	inputs_from_image = {}
+	for i, j in v1_values.keys():
+		v1_this_value = v1_values[(i, j)][0]
+		v1_this_visual = v1_values[(i, j)][1]
+		orientation = v1_values[(i, j)][2]
+		frequency = v1_values[(i, j)][3]
+		phase = v1_values[(i, j)][4]
+		added_input = 0.
+		this_x = (diameter+1)*i 
+		this_y = (diameter+1)*j 
+		for ii, jj in all_Gabors[(orientation, frequency, phase)].keys():
+			if (this_x + ii) >= 0 and (this_x + ii) < xx:
+				if (this_y + jj) >= 0 and (this_y + jj) < yy:
+					added_input = all_Gabors[(orientation, frequency, phase)][(ii, jj)]*(v1_this_visual)*scale
+					rr, gg, bb = experience_image_pixels[this_x + ii, this_y + jj]
+					rgbrgb = (rr + gg + bb) / 3.
+					rgbrgb += added_input
+					rgbrgb = int(max(0, min(255, rgbrgb)))
+					experience_image_pixels[this_x + ii, this_y + jj] = (rgbrgb, rgbrgb, rgbrgb)
+	return experience_image, experience_image_pixels
+
+# This one skips the Gabors and instead goes to straight lines (or elipses)
+def visualizeExperienceNaiveLines(v1_values, all_Ellipsis, rows, columns, diameter, scale):
+	xx = diameter*(rows + 1)
+	yy = diameter*(columns + 1)
+	experience_image = Image.new('RGB', (xx, yy))
+	experience_image_pixels = experience_image.load()
+	for tx in range(xx):
+		for ty in range(yy):
+			experience_image_pixels[tx, ty] = (127, 127, 127)
+	inputs_from_image = {}
+	for i, j in v1_values.keys():
+		v1_this_value = v1_values[(i, j)][0]
+		v1_this_visual = v1_values[(i, j)][1]
+		orientation = v1_values[(i, j)][2]
+		frequency = v1_values[(i, j)][3]
+		phase = v1_values[(i, j)][4]
+		added_input = 0.
+		this_x = (diameter+1)*i 
+		this_y = (diameter+1)*j 
+		for ii, jj in all_Ellipsis[(orientation, frequency, phase)].keys():
+			if (this_x + ii) >= 0 and (this_x + ii) < xx:
+				if (this_y + jj) >= 0 and (this_y + jj) < yy:
+					added_input = all_Ellipsis[(orientation, frequency, phase)][(ii, jj)]*(v1_this_visual)*scale
+					rr, gg, bb = experience_image_pixels[this_x + ii, this_y + jj]
+					rgbrgb = (rr + gg + bb) / 3.
+					rgbrgb += added_input
+					rgbrgb = int(max(0, min(255, rgbrgb)))
+					experience_image_pixels[this_x + ii, this_y + jj] = (rgbrgb, rgbrgb, rgbrgb)
+	return experience_image, experience_image_pixels
+
+
+# This adds a little direction line everywhere, depending on the degree of activation of surrounding hypercolumns
+# and their weighted average orientation.
+def visualizeExperienceField(v1_values, all_Ellipsis, rows, columns, diameter, scale):
+	return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -212,7 +343,7 @@ def getInputsFromImageAndReturnProductImage(input_image, input_pixels, v1_values
 	inputs_from_image = {}
 	for i, j in v1_values.keys():
 		current_v1_value = v1_values[(i, j)][0]
-		orientation = v1_values[(i, j)][1]
+		orientation = v1_values[(i, j)][2]
 		added_input = 0.
 		this_x = row_intervals*i
 		this_y = column_intervals*j
