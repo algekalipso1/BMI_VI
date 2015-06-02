@@ -293,8 +293,8 @@ def visualizeExperienceNaiveLines(v1_values, all_Ellipsis, rows, columns, diamet
 		frequency = v1_values[(i, j)][3]
 		phase = v1_values[(i, j)][4]
 		added_input = 0.
-		this_x = (diameter+1)*i 
-		this_y = (diameter+1)*j 
+		this_x = diameter*(i+ 1) 
+		this_y = diameter*(j+ 1)
 		for ii, jj in all_Ellipsis[(orientation, frequency, phase)].keys():
 			if (this_x + ii) >= 0 and (this_x + ii) < xx:
 				if (this_y + jj) >= 0 and (this_y + jj) < yy:
@@ -309,17 +309,52 @@ def visualizeExperienceNaiveLines(v1_values, all_Ellipsis, rows, columns, diamet
 
 # This adds a little direction line everywhere, depending on the degree of activation of surrounding hypercolumns
 # and their weighted average orientation.
-def visualizeExperienceField(v1_values, all_Ellipsis, rows, columns, diameter, scale):
-	return
+# The lines are not placed at regulare pre-defined intervals. Rather they are selected at random from the possible
+# centers (pixels) on the output image. Samples per block diameter.
+def visualizeExperienceField(v1_values, all_Ellipsis, v1_ccs_connections, rows, columns, diameter, scale, samples):
+	xx = diameter*(rows + 1)
+	yy = diameter*(columns + 1)
+	experience_image = Image.new('RGB', (xx, yy))
+	experience_image_pixels = experience_image.load()
+	for tx in range(xx):
+		for ty in range(yy):
+			experience_image_pixels[tx, ty] = (0, 0, 0)
+	inputs_from_image = {}
+	for i, j in v1_values.keys():
+		v1_this_value = v1_values[(i, j)][0]
+		v1_this_visual = v1_values[(i, j)][1]
+		orientation = v1_values[(i, j)][2]
+		frequency = v1_values[(i, j)][3]
+		phase = v1_values[(i, j)][4]
+		added_input = 0.
+		this_x = diameter*(i+1) 
+		this_y = diameter*(j+1) 
+
+		# find the orientations of neighbours
+
+		# find the weights of such orientations
+
+		# compute the distance effect from there
+		# computeDistance(i, j, ii, jj, diameter)
+
+		for ii, jj in all_Ellipsis[(orientation, frequency, phase)].keys():
+			if (this_x + ii) >= 0 and (this_x + ii) < xx:
+				if (this_y + jj) >= 0 and (this_y + jj) < yy:
+					added_input = all_Ellipsis[(orientation, frequency, phase)][(ii, jj)]*(v1_this_visual)*scale
+					rr, gg, bb = experience_image_pixels[this_x + ii, this_y + jj]
+					rgbrgb = (rr + gg + bb) / 3.
+					rgbrgb += added_input
+					rgbrgb = int(max(0, min(255, rgbrgb)))
+					experience_image_pixels[this_x + ii, this_y + jj] = (rgbrgb, rgbrgb, rgbrgb)
+	return experience_image, experience_image_pixels
 
 
 
 
 
 
-
-
-
+# Perhaps now try something where the samples are chosen with a probability proportional
+# to the network activity around the area.
 
 
 

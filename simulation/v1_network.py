@@ -21,7 +21,7 @@ gifst_of_v1_experience = "/Users/andesgomez/Documents/Stanford/Spring2015/Psych2
 image_directory = "/Users/andesgomez/Documents/Stanford/Spring2015/Psych287/project/source_pictures/"
 
 
-name_of_gif = "ellipse_with_network_effects_6_" #
+name_of_gif = "ellipse_with_network_effects_11_" #
 
 
 rows = 30
@@ -31,13 +31,13 @@ diameter = 10
 input_values = 0.0
 
 # Network operation/update parameters
-lmbd = 0.1 # this is the lambda parameter for the imput updating
-epochs = 61
+lmbd = 0.2 # this is the lambda parameter for the imput updating
+epochs = 25
 alpha = 0.32 # .31
 beta = .02 # 0.002
 t = 1.0
-amp = 20
-sd  = 3
+amp = 15
+sd  = 10
 every_how_many_epochs = 3
 
 
@@ -46,7 +46,7 @@ scale = 20.
 scaling = 10.
 
 candidate_pictures = os.listdir('../source_pictures')
-image_to_use = candidate_pictures[9]
+image_to_use = candidate_pictures[8]
 
 
 input_image = Image.open(image_directory + image_to_use)
@@ -187,6 +187,7 @@ for epoch in range(epochs):
 		image_sequence += [base]
 		#experience_base, experience_pixels = helper_functions.visualizeExperienceNaiveAddition(v1_values, all_Gabors, rows, columns, diameter, scale)
 		experience_base, experience_pixels = helper_functions.visualizeExperienceNaiveLines(v1_values, all_Ellipsis, rows, columns, diameter, scale)
+		#experience_base, experience_pixels = helper_functions.visualizeExperienceField(v1_values, all_Ellipsis, v1_ccs_connections, rows, columns, diameter, scale, samples)
 		experience_sequence += [experience_base]
 
 
